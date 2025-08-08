@@ -10,32 +10,32 @@ class SupervisorAgent:
         self.damage_agent = DamageAgent()
 
     def process(self, image_bytes):
-        # 1. 각 노드 에이전트로부터 정보 수집
+        # 1. 각 노드 에이전트로부터 정보 수집 및 토큰 카운트
         print("TypeAgent 분석 중...")
-        type_response = self.type_agent.analyze(image_bytes)
+        type_response, type_tokens = self.type_agent.analyze(image_bytes)
         print(f"TypeAgent 응답: {type_response}")
-        
+
         print("MaterialAgent 분석 중...")
-        material_response = self.material_agent.analyze(image_bytes)
+        material_response, material_tokens = self.material_agent.analyze(image_bytes)
         print(f"MaterialAgent 응답: {material_response}")
-        
+
         print("DamageAgent 분석 중...")
-        damage_response = self.damage_agent.analyze(image_bytes)
+        damage_response, damage_tokens = self.damage_agent.analyze(image_bytes)
         print(f"DamageAgent 응답: {damage_response}")
-        
+
         # JSON 파싱을 안전하게 처리
         try:
             type_result = json.loads(type_response)
         except json.JSONDecodeError:
             print(f"TypeAgent JSON 파싱 실패: {type_response}")
             type_result = {"type": "알 수 없음", "battery": "알 수 없음"}
-            
+
         try:
             material_result = json.loads(material_response)
         except json.JSONDecodeError:
             print(f"MaterialAgent JSON 파싱 실패: {material_response}")
             material_result = {"material": "알 수 없음"}
-            
+
         try:
             damage_result = json.loads(damage_response)
         except json.JSONDecodeError:
@@ -52,6 +52,14 @@ class SupervisorAgent:
         # 3. 수리/분해 여부 판별
         repair_or_disassemble = self.judge_repair(damage)
 
+        # 토큰 정보 dict로 반환
+        token_usage = {
+            "type_agent": type_tokens,
+            "material_agent": material_tokens,
+            "damage_agent": damage_tokens,
+            "total": sum([t for t in [type_tokens, material_tokens, damage_tokens] if t is not None])
+        }
+
         return {
             "장난감 종류": toy_type,
             "건전지 여부": battery,
@@ -59,7 +67,8 @@ class SupervisorAgent:
             "파손": damage,
             "기부 가능 여부": "가능" if donate else "불가능",
             "기부 불가 사유": reason if not donate else None,
-            "수리/분해": repair_or_disassemble
+            "수리/분해": repair_or_disassemble,
+            "토큰_사용량": token_usage
         }
 
     def judge_donation(self, toy_type, battery, material):

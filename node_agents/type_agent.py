@@ -11,9 +11,7 @@ class TypeAgent:
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     def analyze(self, image_bytes):
-        # 이미지를 base64로 인코딩
         image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-        
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -39,8 +37,10 @@ class TypeAgent:
                 temperature=0.1
             )
             result = response.choices[0].message.content.strip()
+            total_tokens = getattr(response, 'usage', None)
+            total_tokens = total_tokens.total_tokens if total_tokens and hasattr(total_tokens, 'total_tokens') else None
             print(f"TypeAgent raw response: {result}")
-            return result
+            return result, total_tokens
         except Exception as e:
             print(f"TypeAgent 에러: {e}")
-            return '{"type": "피규어", "battery": "비건전지"}'
+            return '{"type": "피규어", "battery": "비건전지"}', None
